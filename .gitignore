@@ -1,0 +1,39 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment variables
+.env
+
+# Database files (не игнорируем для деплоя, но можно добавить в .gitignore)
+# nightdlc.db
+# nightdlc.db-shm
+# nightdlc.db-wal
+
+# Deploy files
+deploy.tar.gz
+*.rar
+
+# Uploads (можно игнорировать, если не нужны в репозитории)
+# uploads/
