@@ -23,6 +23,10 @@ fs.mkdirSync(uploadsDir, { recursive: true })
 
 app.use('/uploads', express.static(uploadsDir))
 
+// Раздача статических файлов фронтенда
+const distPath = path.resolve('dist')
+app.use(express.static(distPath))
+
 const upload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, uploadsDir),
@@ -651,26 +655,20 @@ app.delete('/api/admin/keys/:id', requireAuth, requireAdmin, async (req, res) =>
 })
 
 // Для всех остальных маршрутов отдаем index.html (для React Router)
-if (process.env.NODE_ENV === 'production') {
-  const distPath = path.resolve('dist')
-  app.use(express.static(distPath))
+app.use((req, res, next) => {
+  // Пропускаем API запросы
+  if (req.path.startsWith('/api/')) {
+    return next()
+  }
   
-  // Fallback для HTML маршрутов (не для статических файлов)
-  app.use((req, res, next) => {
-    // Пропускаем API запросы
-    if (req.path.startsWith('/api/')) {
-      return next()
-    }
-    
-    // Пропускаем запросы к статическим файлам
-    if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/)) {
-      return next()
-    }
-    
-    // Для всех остальных отдаем index.html
-    res.sendFile(path.resolve('dist', 'index.html'))
-  })
-}
+  // Пропускаем запросы к статическим файлам
+  if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/)) {
+    return next()
+  }
+  
+  // Для всех остальных отдаем index.html
+  res.sendFile(path.resolve('dist', 'index.html'))
+})
 
 app.listen(PORT, '0.0.0.0', () => {
   process.stdout.write(`✅ NelonDLC API listening on http://0.0.0.0:${PORT}\n`)
