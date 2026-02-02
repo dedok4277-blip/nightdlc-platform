@@ -44,7 +44,12 @@ const pool = {
     // Выполняем запрос в основной БД
     if (primaryDB === 'postgres' && pgPool) {
       try {
-        const pgResult = await pgPool.query(sql, params)
+        // Конвертируем ? в $1, $2, $3 для PostgreSQL
+        let pgSql = sql
+        let paramIndex = 1
+        pgSql = pgSql.replace(/\?/g, () => `$${paramIndex++}`)
+        
+        const pgResult = await pgPool.query(pgSql, params)
         results.primary = pgResult.rows
       } catch (error) {
         console.error('PostgreSQL query error:', error.message)
@@ -70,7 +75,12 @@ const pool = {
         }
       } else if (primaryDB === 'mysql' && pgPool) {
         try {
-          await pgPool.query(sql, params)
+          // Конвертируем ? в $1, $2, $3 для PostgreSQL
+          let pgSql = sql
+          let paramIndex = 1
+          pgSql = pgSql.replace(/\?/g, () => `$${paramIndex++}`)
+          
+          await pgPool.query(pgSql, params)
         } catch (error) {
           console.warn('PostgreSQL sync warning:', error.message)
         }

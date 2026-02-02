@@ -11,28 +11,9 @@ dotenv.config()
 
 import pool, { nextUid } from './db-dual.js'
 import { requireAdmin, requireAuth, signToken } from './auth.js'
-import {
-  blockIPMiddleware,
-  trackRequestsMiddleware,
-  generalLimiter,
-  apiLimiter,
-  authLimiter,
-  speedLimiter,
-  logSuspiciousActivity,
-  getAntiDDoSStats,
-  blockIP,
-  unblockIP,
-  addToWhitelist
-} from './anti-ddos.js'
 
 const PORT = Number(process.env.PORT || 5173)
 const app = express()
-
-// 🛡️ Anti-DDoS защита (применяется первой)
-app.use(blockIPMiddleware)
-app.use(trackRequestsMiddleware)
-app.use(logSuspiciousActivity)
-app.use(speedLimiter)
 
 app.use(cors())
 app.use(express.json({ limit: '2mb' }))
@@ -123,9 +104,6 @@ async function ensureSeedAdmin() {
 
 await ensureSeedAdmin()
 
-// 🛡️ Применяем rate limiting для всех API запросов
-app.use('/api/', apiLimiter)
-
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
 
 app.get('/api/ping', (_req, res) => {
@@ -136,38 +114,7 @@ app.get('/api/ping', (_req, res) => {
   })
 })
 
-// 🛡️ Endpoints для управления Anti-DDoS (только для админов)
-app.get('/api/admin/ddos/stats', requireAuth, requireAdmin, (_req, res) => {
-  const stats = getAntiDDoSStats()
-  return res.json(stats)
-})
-
-app.post('/api/admin/ddos/block', requireAuth, requireAdmin, (req, res) => {
-  const { ip, duration, reason } = req.body || {}
-  if (!ip) return res.status(400).json({ error: 'IP required' })
-  
-  const result = blockIP(ip, duration, reason)
-  return res.json(result)
-})
-
-app.post('/api/admin/ddos/unblock', requireAuth, requireAdmin, (req, res) => {
-  const { ip } = req.body || {}
-  if (!ip) return res.status(400).json({ error: 'IP required' })
-  
-  const result = unblockIP(ip)
-  return res.json(result)
-})
-
-app.post('/api/admin/ddos/whitelist', requireAuth, requireAdmin, (req, res) => {
-  const { ip } = req.body || {}
-  if (!ip) return res.status(400).json({ error: 'IP required' })
-  
-  const result = addToWhitelist(ip)
-  return res.json(result)
-})
-
-// 🛡️ Применяем rate limiting для авторизации
-app.post('/api/auth/register', authLimiter, async (req, res) => {
+app.post('/api/auth/register', async (req, res) => {
   try {
     const { username, email, password } = req.body || {}
     if (!username || !email || !password) return res.status(400).json({ error: 'bad_request' })
@@ -192,7 +139,7 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
   }
 })
 
-app.post('/api/auth/login', authLimiter, async (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   try {
     const { login, password, hwid } = req.body || {}
     if (!login || !password) return res.status(400).json({ error: 'bad_request' })
