@@ -655,7 +655,8 @@ if (process.env.NODE_ENV === 'production') {
   const distPath = path.resolve('dist')
   app.use(express.static(distPath))
   
-  app.use((_req, res) => {
+  // Fallback только для HTML запросов (не для JS/CSS/изображений)
+  app.get('*', (req, res) => {
     res.sendFile(path.resolve('dist', 'index.html'))
   })
 }
