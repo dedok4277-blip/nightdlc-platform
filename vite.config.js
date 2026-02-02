@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/nelondlc/', // Замените на имя вашего репозитория
+  base: '/', // Для Render.com используем корневой путь
   server: {
     port: 5174,
     proxy: {
