@@ -273,11 +273,11 @@ app.post('/api/me/activate-key', requireAuth, async (req, res) => {
     if (!key) return res.status(400).json({ error: 'bad_request' })
 
     // Проверяем существование ключа в таблице license_keys
-    const [keys] = await pool.execute('SELECT * FROM license_keys WHERE `key` = ? AND used = 0', [String(key)])
+    const [keys] = await pool.execute('SELECT * FROM license_keys WHERE key = ? AND used = 0', [String(key)])
     if (keys.length === 0) return res.status(404).json({ error: 'invalid_key' })
 
     // Помечаем ключ как использованный
-    await pool.execute('UPDATE license_keys SET used = 1, used_by = ?, used_at = ? WHERE `key` = ?', [req.user.id, Date.now(), String(key)])
+    await pool.execute('UPDATE license_keys SET used = 1, used_by = ?, used_at = ? WHERE key = ?', [req.user.id, Date.now(), String(key)])
     
     // Выдаем вечную Elite подписку (expiresAt = 0 означает навсегда)
     await pool.execute('UPDATE users SET license_key = ?, subscription_tier = ?, subscription_expires_at = ? WHERE id = ?', [String(key), 'Elite', 0, req.user.id])
@@ -607,7 +607,7 @@ app.post('/api/admin/generate-key', requireAuth, requireAdmin, async (req, res) 
     }
     
     const key = generateKey()
-    await pool.execute('INSERT INTO license_keys (`key`, created_at, created_by) VALUES (?, ?, ?)', [key, Date.now(), req.user.id])
+    await pool.execute('INSERT INTO license_keys (key, created_at, created_by) VALUES (?, ?, ?)', [key, Date.now(), req.user.id])
     
     return res.json({ key })
   } catch (error) {
