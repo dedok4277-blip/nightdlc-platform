@@ -23,12 +23,6 @@ fs.mkdirSync(uploadsDir, { recursive: true })
 
 app.use('/uploads', express.static(uploadsDir))
 
-// Раздача статических файлов фронтенда в продакшене
-if (process.env.NODE_ENV === 'production') {
-  const distPath = path.resolve('dist')
-  app.use(express.static(distPath))
-}
-
 const upload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, uploadsDir),
@@ -658,6 +652,9 @@ app.delete('/api/admin/keys/:id', requireAuth, requireAdmin, async (req, res) =>
 
 // Для всех остальных маршрутов отдаем index.html (для React Router)
 if (process.env.NODE_ENV === 'production') {
+  const distPath = path.resolve('dist')
+  app.use(express.static(distPath))
+  
   app.use((_req, res) => {
     res.sendFile(path.resolve('dist', 'index.html'))
   })
