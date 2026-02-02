@@ -106,6 +106,14 @@ await ensureSeedAdmin()
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
 
+app.get('/api/ping', (_req, res) => {
+  res.json({ 
+    ok: true, 
+    timestamp: Date.now(),
+    message: 'pong'
+  })
+})
+
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { username, email, password } = req.body || {}
