@@ -55,13 +55,32 @@ export default function AdminPanelPage() {
   }, [users, q])
 
   async function toggleAdmin(uid) {
+    // Защита от снятия админки с самого себя
+    if (String(uid) === String(me?.uid)) {
+      setError('cannot_toggle_self')
+      alert('❌ Вы не можете изменить свои админские права!')
+      return
+    }
+
+    const targetUser = users.find(u => String(u.uid) === String(uid))
+    if (!targetUser) return
+
+    const action = targetUser.isAdmin ? 'забрать админку у' : 'выдать админку'
+    const ok = window.confirm(`Вы уверены, что хотите ${action} пользователя ${targetUser.username} (UID ${uid})?`)
+    if (!ok) return
+
     setError(null)
     setBusyUid(uid)
     try {
       const data = await api(`/api/admin/users/${uid}/toggle-admin`, { method: 'POST' })
       setUsers((prev) => prev.map((u) => (String(u.uid) === String(uid) ? data.user : u)))
+      
+      // Показываем уведомление об успехе
+      const newStatus = data.user.isAdmin ? 'выдана' : 'забрана'
+      alert(`✅ Админка успешно ${newStatus} пользователю ${targetUser.username}`)
     } catch (e) {
       setError(e?.data?.error || e?.message || 'toggle_failed')
+      alert(`❌ Ошибка: ${e?.data?.error || e?.message || 'toggle_failed'}`)
     } finally {
       setBusyUid(null)
     }
@@ -236,12 +255,19 @@ export default function AdminPanelPage() {
                   <div className="adminRowActions">
                     <button
                       type="button"
-                      className={`chip ${u.isAdmin ? 'chipPrimary' : ''}`}
+                      className={`chip ${u.isAdmin ? 'chipPrimary' : 'chipSecondary'}`}
                       onClick={() => toggleAdmin(u.uid)}
-                      disabled={busyUid === u.uid}
-                      title={u.isAdmin ? 'Remove admin' : 'Make admin'}
+                      disabled={busyUid === u.uid || String(u.uid) === String(me?.uid)}
+                      title={u.isAdmin ? 'Забрать админку' : 'Выдать админку'}
+                      style={{
+                        fontWeight: 'bold',
+                        minWidth: '80px',
+                        backgroundColor: u.isAdmin ? '#ff4444' : '#4CAF50',
+                        color: 'white',
+                        border: 'none'
+                      }}
                     >
-                      <span className="chipText">{u.isAdmin ? 'ADMIN' : 'USER'}</span>
+                      <span className="chipText">{u.isAdmin ? '👑 ADMIN' : '👤 USER'}</span>
                     </button>
 
                     <button

@@ -8,14 +8,14 @@ export default function PricingPage() {
     () => [
       {
         tier: 'Basic',
-        price: '159₽',
+        price: '78₽',
         period: '/ month',
         tagline: 'Starter access to NelonDLC downloads.',
         perks: ['Access to downloads', 'Forum access', 'Standard support'],
       },
       {
         tier: 'Plus',
-        price: '399₽',
+        price: '135₽',
         period: '/ 3 months',
         tagline: 'More time, better value.',
         perks: ['Access to downloads', 'Forum access', 'Priority support'],
@@ -23,7 +23,7 @@ export default function PricingPage() {
       },
       {
         tier: 'Elite',
-        price: '999₽',
+        price: '198₽',
         period: '/ lifetime',
         tagline: 'One-time purchase. No renewals.',
         perks: ['Lifetime access', 'Forum access', 'Top priority support'],

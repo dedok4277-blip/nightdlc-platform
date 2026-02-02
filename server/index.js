@@ -9,11 +9,30 @@ import crypto from 'crypto'
 
 dotenv.config()
 
-import pool, { nextUid } from './db-postgres.js'
+import pool, { nextUid } from './db-dual.js'
 import { requireAdmin, requireAuth, signToken } from './auth.js'
+import {
+  blockIPMiddleware,
+  trackRequestsMiddleware,
+  generalLimiter,
+  apiLimiter,
+  authLimiter,
+  speedLimiter,
+  logSuspiciousActivity,
+  getAntiDDoSStats,
+  blockIP,
+  unblockIP,
+  addToWhitelist
+} from './anti-ddos.js'
 
 const PORT = Number(process.env.PORT || 5173)
 const app = express()
+
+// 🛡️ Anti-DDoS защита (применяется первой)
+app.use(blockIPMiddleware)
+app.use(trackRequestsMiddleware)
+app.use(logSuspiciousActivity)
+app.use(speedLimiter)
 
 app.use(cors())
 app.use(express.json({ limit: '2mb' }))
@@ -104,6 +123,9 @@ async function ensureSeedAdmin() {
 
 await ensureSeedAdmin()
 
+// 🛡️ Применяем rate limiting для всех API запросов
+app.use('/api/', apiLimiter)
+
 app.get('/api/health', (_req, res) => res.json({ ok: true }))
 
 app.get('/api/ping', (_req, res) => {
@@ -114,7 +136,38 @@ app.get('/api/ping', (_req, res) => {
   })
 })
 
-app.post('/api/auth/register', async (req, res) => {
+// 🛡️ Endpoints для управления Anti-DDoS (только для админов)
+app.get('/api/admin/ddos/stats', requireAuth, requireAdmin, (_req, res) => {
+  const stats = getAntiDDoSStats()
+  return res.json(stats)
+})
+
+app.post('/api/admin/ddos/block', requireAuth, requireAdmin, (req, res) => {
+  const { ip, duration, reason } = req.body || {}
+  if (!ip) return res.status(400).json({ error: 'IP required' })
+  
+  const result = blockIP(ip, duration, reason)
+  return res.json(result)
+})
+
+app.post('/api/admin/ddos/unblock', requireAuth, requireAdmin, (req, res) => {
+  const { ip } = req.body || {}
+  if (!ip) return res.status(400).json({ error: 'IP required' })
+  
+  const result = unblockIP(ip)
+  return res.json(result)
+})
+
+app.post('/api/admin/ddos/whitelist', requireAuth, requireAdmin, (req, res) => {
+  const { ip } = req.body || {}
+  if (!ip) return res.status(400).json({ error: 'IP required' })
+  
+  const result = addToWhitelist(ip)
+  return res.json(result)
+})
+
+// 🛡️ Применяем rate limiting для авторизации
+app.post('/api/auth/register', authLimiter, async (req, res) => {
   try {
     const { username, email, password } = req.body || {}
     if (!username || !email || !password) return res.status(400).json({ error: 'bad_request' })
@@ -139,7 +192,7 @@ app.post('/api/auth/register', async (req, res) => {
   }
 })
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
     const { login, password, hwid } = req.body || {}
     if (!login || !password) return res.status(400).json({ error: 'bad_request' })
@@ -284,11 +337,24 @@ app.post('/api/me/activate-key', requireAuth, async (req, res) => {
     const [keys] = await pool.execute('SELECT * FROM license_keys WHERE key = ? AND used = 0', [String(key)])
     if (keys.length === 0) return res.status(404).json({ error: 'invalid_key' })
 
-    // Помечаем ключ как использованный
+    const licenseKey = keys[0]
+    const subscriptionType = licenseKey.subscription_type || 'Basic'
+    
+    // Определяем срок действия подписки
+    let expiresAt = 0
+    if (subscriptionType === 'Basic') {
+      expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000 // 30 дней
+    } else if (subscriptionType === 'Plus') {
+      expiresAt = Date.now() + 90 * 24 * 60 * 60 * 1000 // 90 дней
+    } else if (subscriptionType === 'Lifetime') {
+      expiresAt = 0 // Навсегда
+    }
+
+    // Помечаем ключ как использованный (только один раз!)
     await pool.execute('UPDATE license_keys SET used = 1, used_by = ?, used_at = ? WHERE key = ?', [req.user.id, Date.now(), String(key)])
     
-    // Выдаем вечную Elite подписку (expiresAt = 0 означает навсегда)
-    await pool.execute('UPDATE users SET license_key = ?, subscription_tier = ?, subscription_expires_at = ? WHERE id = ?', [String(key), 'Elite', 0, req.user.id])
+    // Выдаем подписку в зависимости от типа ключа
+    await pool.execute('UPDATE users SET license_key = ?, subscription_tier = ?, subscription_expires_at = ? WHERE id = ?', [String(key), subscriptionType, expiresAt, req.user.id])
     
     const [updated] = await pool.execute('SELECT * FROM users WHERE id = ?', [req.user.id])
     return res.json({ user: publicUser(updated[0]) })
@@ -463,6 +529,11 @@ app.post('/api/admin/users/:uid/toggle-admin', requireAuth, requireAdmin, async 
     const uid = Number(req.params.uid)
     if (!uid) return res.status(400).json({ error: 'bad_request' })
 
+    // Защита: нельзя изменить свои админские права
+    if (uid === req.user.uid) {
+      return res.status(403).json({ error: 'cannot_toggle_self' })
+    }
+
     const [users] = await pool.execute('SELECT id, uid, is_admin FROM users WHERE uid = ?', [uid])
     if (users.length === 0) return res.status(404).json({ error: 'not_found' })
     const user = users[0]
@@ -482,6 +553,9 @@ app.post('/api/admin/users/:uid/toggle-admin', requireAuth, requireAdmin, async 
     const tier = updated[0]?.subscriptionTier || 'None'
     const exp = Number(updated[0]?.subscriptionExpiresAt || 0)
     const active = tier !== 'None' && (exp === 0 || exp > Date.now())
+    
+    console.log(`👑 Admin ${req.user.username} ${next ? 'granted' : 'revoked'} admin rights for user ${updated[0].username} (UID ${uid})`)
+    
     return res.json({ user: { ...updated[0], subscriptionTier: tier, subscriptionExpiresAt: exp, subscriptionActive: active } })
   } catch (error) {
     console.error('Toggle admin error:', error)
@@ -606,6 +680,12 @@ app.delete('/api/admin/posts/:id', requireAuth, requireAdmin, async (req, res) =
 
 app.post('/api/admin/generate-key', requireAuth, requireAdmin, async (req, res) => {
   try {
+    const { subscriptionType } = req.body || {}
+    
+    // Проверяем тип подписки
+    const validTypes = ['Basic', 'Plus', 'Lifetime']
+    const type = validTypes.includes(subscriptionType) ? subscriptionType : 'Basic'
+    
     // Генерируем ключ в формате XXXX-XXXX-XXXX
     function generateKey() {
       const part1 = crypto.randomBytes(2).toString('hex').toUpperCase()
@@ -615,9 +695,9 @@ app.post('/api/admin/generate-key', requireAuth, requireAdmin, async (req, res) 
     }
     
     const key = generateKey()
-    await pool.execute('INSERT INTO license_keys (key, created_at, created_by) VALUES (?, ?, ?)', [key, Date.now(), req.user.id])
+    await pool.execute('INSERT INTO license_keys (key, subscription_type, created_at, created_by) VALUES (?, ?, ?, ?)', [key, type, Date.now(), req.user.id])
     
-    return res.json({ key })
+    return res.json({ key, subscriptionType: type })
   } catch (error) {
     console.error('Generate key error:', error)
     return res.status(500).json({ error: 'internal_error' })
@@ -630,6 +710,7 @@ app.get('/api/admin/keys', requireAuth, requireAdmin, async (_req, res) => {
       SELECT 
         lk.id,
         lk.key,
+        lk.subscription_type as subscriptionType,
         lk.used,
         lk.created_at as createdAt,
         lk.used_at as usedAt,
