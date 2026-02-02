@@ -13,7 +13,9 @@
     "prod": "npm run build && npm start",
     "deploy": "npm run build && echo Ready for deployment!",
     "predeploy": "npm run build",
-    "deploy:gh": "gh-pages -d dist"
+    "deploy:gh": "gh-pages -d dist",
+    "render-build": "npm install && npm run build",
+    "render-start": "node server/index.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
