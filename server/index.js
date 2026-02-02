@@ -629,7 +629,7 @@ app.get('/api/admin/keys', requireAuth, requireAdmin, async (_req, res) => {
     const [keys] = await pool.execute(`
       SELECT 
         lk.id,
-        lk.\`key\`,
+        lk.key,
         lk.used,
         lk.created_at as createdAt,
         lk.used_at as usedAt,
