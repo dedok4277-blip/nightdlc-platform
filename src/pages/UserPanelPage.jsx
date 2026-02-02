@@ -167,11 +167,8 @@ export default function UserPanelPage() {
                   </select>
                 </label>
                 <div className="downloadRow">
-                  <button type="button" className="btn btnPrimary" onClick={() => doDownload('version')} disabled={downloading}>
-                    Версией
-                  </button>
-                  <button type="button" className="btn" onClick={() => doDownload('launcher')} disabled={downloading}>
-                    Лаунчером
+                  <button type="button" className="btn btnPrimary" onClick={() => doDownload('launcher')} disabled={downloading}>
+                    Скачать лаунчер
                   </button>
                 </div>
                 {downloadError ? (
