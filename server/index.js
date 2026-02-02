@@ -9,7 +9,7 @@ import crypto from 'crypto'
 
 dotenv.config()
 
-import pool, { nextUid } from './db-mysql.js'
+import pool, { nextUid } from './db-postgres.js'
 import { requireAdmin, requireAuth, signToken } from './auth.js'
 
 const PORT = Number(process.env.PORT || 5173)
@@ -663,7 +663,8 @@ if (process.env.NODE_ENV === 'production') {
   })
 }
 
-app.listen(PORT, () => {
-  process.stdout.write(`✅ NelonDLC API listening on http://localhost:${PORT}\n`)
+app.listen(PORT, '0.0.0.0', () => {
+  process.stdout.write(`✅ NelonDLC API listening on http://0.0.0.0:${PORT}\n`)
   process.stdout.write(`📊 Database: MySQL (${process.env.DB_NAME})\n`)
+  process.stdout.write(`🌐 Access from network: http://<YOUR_IP>:${PORT}\n`)
 })
