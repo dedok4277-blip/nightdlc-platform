@@ -280,6 +280,12 @@ app.post('/api/me/activate-key', requireAuth, async (req, res) => {
     const { key } = req.body || {}
     if (!key) return res.status(400).json({ error: 'bad_request' })
 
+    // Проверяем, есть ли у пользователя активная подписка
+    const [currentUser] = await pool.execute('SELECT * FROM users WHERE id = ?', [req.user.id])
+    if (currentUser.length > 0 && isSubscriptionActive(currentUser[0])) {
+      return res.status(403).json({ error: 'subscription_already_active' })
+    }
+
     // Проверяем существование ключа в таблице license_keys
     const [keys] = await pool.execute('SELECT * FROM license_keys WHERE key = ? AND used = 0', [String(key)])
     if (keys.length === 0) return res.status(404).json({ error: 'invalid_key' })

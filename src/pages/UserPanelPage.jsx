@@ -127,10 +127,21 @@ export default function UserPanelPage() {
               <div className="panel panelDeep">
                 <div className="panelTitle">Activate key</div>
                 <div className="panelText">Key will be required later.</div>
+                {user?.subscriptionActive ? (
+                  <div className="mini" style={{ marginTop: 10, color: '#4ade80' }}>
+                    ✓ У вас уже есть активная подписка {user?.subscriptionTier}
+                  </div>
+                ) : null}
                 <div className="form">
                   <label className="field">
                     <span className="label">Key</span>
-                    <input className="input" value={keyValue} onChange={(e) => setKeyValue(e.target.value)} placeholder="XXXX-XXXX-XXXX" />
+                    <input 
+                      className="input" 
+                      value={keyValue} 
+                      onChange={(e) => setKeyValue(e.target.value)} 
+                      placeholder="XXXX-XXXX-XXXX"
+                      disabled={user?.subscriptionActive}
+                    />
                   </label>
                   <button
                     type="button"
@@ -142,10 +153,17 @@ export default function UserPanelPage() {
                         setUser(data.user)
                         setKeyValue('')
                       } catch (e) {
-                        setError(e?.data?.error || e?.message || 'activate_failed')
+                        const errorCode = e?.data?.error || e?.message || 'activate_failed'
+                        if (errorCode === 'subscription_already_active') {
+                          setError('У вас уже есть активная подписка')
+                        } else if (errorCode === 'invalid_key') {
+                          setError('Неверный или использованный ключ')
+                        } else {
+                          setError(errorCode)
+                        }
                       }
                     }}
-                    disabled={!keyValue}
+                    disabled={!keyValue || user?.subscriptionActive}
                   >
                     Activate
                   </button>

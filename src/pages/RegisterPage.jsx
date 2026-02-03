@@ -7,7 +7,6 @@ const MOTTO = [
   'Bustit',
   'NelonDLC',
   'mirnisoldat',
-  'glwfix',
 ]
 
 export default function RegisterPage() {

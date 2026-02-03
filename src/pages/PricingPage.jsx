@@ -8,25 +8,32 @@ export default function PricingPage() {
     () => [
       {
         tier: 'Basic',
+        duration: '30 дней',
         price: '78₽',
-        period: '/ month',
-        tagline: 'Starter access to NelonDLC downloads.',
-        perks: ['Access to downloads', 'Forum access', 'Standard support'],
+        period: '/ месяц',
+        tagline: 'Идеально для начала',
+        perks: ['Доступ к загрузкам', 'Доступ к форуму', 'Стандартная поддержка', 'Обновления контента'],
+        icon: '🚀',
       },
       {
         tier: 'Plus',
+        duration: '90 дней',
         price: '135₽',
-        period: '/ 3 months',
-        tagline: 'More time, better value.',
-        perks: ['Access to downloads', 'Forum access', 'Priority support'],
+        period: '/ 3 месяца',
+        tagline: 'Больше времени, лучшая цена',
+        perks: ['Доступ к загрузкам', 'Доступ к форуму', 'Приоритетная поддержка', 'Ранний доступ к новинкам', 'Эксклюзивный контент'],
         accent: true,
+        icon: '⭐',
+        badge: 'Популярный',
       },
       {
-        tier: 'Elite',
+        tier: 'Lifetime',
+        duration: 'навсегда',
         price: '198₽',
-        period: '/ lifetime',
-        tagline: 'One-time purchase. No renewals.',
-        perks: ['Lifetime access', 'Forum access', 'Top priority support'],
+        period: '/ навсегда',
+        tagline: 'Один раз и навсегда',
+        perks: ['Пожизненный доступ', 'Доступ к форуму', 'VIP поддержка', 'Все будущие обновления', 'Эксклюзивный контент', 'Особый статус'],
+        icon: '👑',
       },
     ],
     []
@@ -37,16 +44,16 @@ export default function PricingPage() {
       <div className="panel panelDeep pricingEnter">
         <div className="pricingHead">
           <div>
-            <div className="panelTitle">Pricing</div>
-            <div className="panelText">Choose the tier you want. Subscription is granted by an admin.</div>
+            <div className="panelTitle">Выберите свой тариф</div>
+            <div className="panelText">Получите доступ ко всем возможностям NelonDLC</div>
           </div>
           {user ? (
-            <Link className="btn" to={`/user/${user.uid}`}>
-              User panel
+            <Link className="btn btnPrimary" to={`/user/${user.uid}`}>
+              Личный кабинет
             </Link>
           ) : (
-            <Link className="btn" to="/login">
-              Login
+            <Link className="btn btnPrimary" to="/login">
+              Войти
             </Link>
           )}
         </div>
@@ -54,8 +61,12 @@ export default function PricingPage() {
         <div className="pricingGrid">
           {plans.map((p) => (
             <div key={p.tier} className={`pricingCard ${p.accent ? 'pricingCardAccent' : ''}`}>
+              {p.badge && <div className="pricingBadge">{p.badge}</div>}
+              
               <div className="pricingTop">
+                <div className="pricingIcon">{p.icon}</div>
                 <div className="pricingTier">{p.tier}</div>
+                <div className="pricingDuration">({p.duration})</div>
                 <div className="pricingPrice">
                   <span className="pricingNum">{p.price}</span>
                   <span className="pricingPeriod">{p.period}</span>
@@ -73,17 +84,32 @@ export default function PricingPage() {
               </div>
 
               <div className="pricingFoot">
-                <div className="mini">To activate, contact admin and provide your UID.</div>
+                <a 
+                  href="https://funpay.com/users/12823655/" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="funpayLink"
+                >
+                  <div className="funpayIcon">F</div>
+                  <span>Купить на FunPay</span>
+                </a>
               </div>
             </div>
           ))}
         </div>
 
         {user ? (
-          <div className="panelText" style={{ marginTop: 12 }}>
-            Your UID: <span className="uid">{user.uid}</span>
+          <div className="panelText" style={{ marginTop: 20, textAlign: 'center', fontSize: '14px' }}>
+            Ваш UID: <span className="uid" style={{ fontSize: '16px', fontWeight: '700' }}>{user.uid}</span>
           </div>
-        ) : null}
+        ) : (
+          <div className="panelText" style={{ marginTop: 20, textAlign: 'center' }}>
+            <Link to="/register" style={{ color: 'rgba(168, 120, 255, 0.95)', textDecoration: 'none' }}>
+              Зарегистрируйтесь
+            </Link>
+            {' '}чтобы получить свой UID
+          </div>
+        )}
       </div>
     </div>
   )

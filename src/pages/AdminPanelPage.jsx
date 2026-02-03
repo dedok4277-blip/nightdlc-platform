@@ -12,6 +12,7 @@ export default function AdminPanelPage() {
   const [searching, setSearching] = useState(false)
   const [busyUid, setBusyUid] = useState(null)
   const [generating, setGenerating] = useState(false)
+  const [keyType, setKeyType] = useState('Basic')
 
   async function load() {
     setError(null)
@@ -175,10 +176,10 @@ export default function AdminPanelPage() {
     setError(null)
     setGenerating(true)
     try {
-      const data = await api('/api/admin/generate-key', { method: 'POST' })
+      const data = await api('/api/admin/generate-key', { method: 'POST', body: { subscriptionType: keyType } })
       if (data?.key) {
         await load()
-        alert(`Ключ сгенерирован: ${data.key}`)
+        alert(`Ключ сгенерирован: ${data.key}\nТип: ${data.subscriptionType}`)
       }
     } catch (e) {
       setError(e?.data?.error || e?.message || 'generate_failed')
@@ -255,19 +256,12 @@ export default function AdminPanelPage() {
                   <div className="adminRowActions">
                     <button
                       type="button"
-                      className={`chip ${u.isAdmin ? 'chipPrimary' : 'chipSecondary'}`}
+                      className={`chip ${u.isAdmin ? 'chipPrimary' : ''}`}
                       onClick={() => toggleAdmin(u.uid)}
                       disabled={busyUid === u.uid || String(u.uid) === String(me?.uid)}
                       title={u.isAdmin ? 'Забрать админку' : 'Выдать админку'}
-                      style={{
-                        fontWeight: 'bold',
-                        minWidth: '80px',
-                        backgroundColor: u.isAdmin ? '#ff4444' : '#4CAF50',
-                        color: 'white',
-                        border: 'none'
-                      }}
                     >
-                      <span className="chipText">{u.isAdmin ? '👑 ADMIN' : '👤 USER'}</span>
+                      <span className="chipText">{u.isAdmin ? 'ADMIN' : 'USER'}</span>
                     </button>
 
                     <button
@@ -334,9 +328,43 @@ export default function AdminPanelPage() {
 
           <div className="adminCol">
             <div className="panelTitle">License Keys</div>
-            <button type="button" className="btn btnPrimary" onClick={generateKey} disabled={generating} style={{ marginBottom: 10 }}>
-              {generating ? 'Generating...' : 'Generate Key'}
-            </button>
+            <div className="keyGeneratorBox">
+              <label className="keyTypeSelector">
+                <span className="label">Выберите тип ключа</span>
+                <div className="keyTypeOptions">
+                  <button
+                    type="button"
+                    className={`keyTypeOption ${keyType === 'Basic' ? 'keyTypeOptionActive' : ''}`}
+                    onClick={() => setKeyType('Basic')}
+                  >
+                    <div className="keyTypeIcon">🚀</div>
+                    <div className="keyTypeName">Basic</div>
+                    <div className="keyTypeDuration">30 дней</div>
+                  </button>
+                  <button
+                    type="button"
+                    className={`keyTypeOption ${keyType === 'Plus' ? 'keyTypeOptionActive' : ''}`}
+                    onClick={() => setKeyType('Plus')}
+                  >
+                    <div className="keyTypeIcon">⭐</div>
+                    <div className="keyTypeName">Plus</div>
+                    <div className="keyTypeDuration">90 дней</div>
+                  </button>
+                  <button
+                    type="button"
+                    className={`keyTypeOption ${keyType === 'Lifetime' ? 'keyTypeOptionActive' : ''}`}
+                    onClick={() => setKeyType('Lifetime')}
+                  >
+                    <div className="keyTypeIcon">👑</div>
+                    <div className="keyTypeName">Lifetime</div>
+                    <div className="keyTypeDuration">навсегда</div>
+                  </button>
+                </div>
+              </label>
+              <button type="button" className="btn btnPrimary btnWide" onClick={generateKey} disabled={generating}>
+                {generating ? 'Генерация...' : `Сгенерировать ${keyType} ключ`}
+              </button>
+            </div>
             <div className="mini">Total: {keys.length}</div>
             <div className="adminList">
               {keys.map((k) => (
@@ -346,6 +374,10 @@ export default function AdminPanelPage() {
                       {k.key}
                     </div>
                     <div className="rowSub">
+                      {k.subscriptionType && <span style={{ fontWeight: 'bold', color: k.subscriptionType === 'Lifetime' ? '#4CAF50' : k.subscriptionType === 'Plus' ? '#2196F3' : '#FF9800' }}>
+                        {k.subscriptionType}
+                      </span>}
+                      {k.subscriptionType && ' · '}
                       {k.used ? `Used by ${k.usedBy || 'unknown'} at ${formatDate(k.usedAt)}` : 'Not used'}
                       {' · Created by '}{k.createdBy || 'unknown'}{' at '}{formatDate(k.createdAt)}
                     </div>

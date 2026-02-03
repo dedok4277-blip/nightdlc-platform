@@ -27,7 +27,9 @@
     "key:generate": "node generate-key-with-type.js",
     "key:generate-multiple": "node generate-multiple-keys.js",
     "key:show": "node show-keys-mysql.js",
-    "key:test": "node test-keys-simple.js"
+    "key:test": "node test-keys-simple.js",
+    "keep-alive": "node keep-alive.js",
+    "keep-alive:advanced": "node keep-alive-advanced.js"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.1.1",
