@@ -293,6 +293,15 @@ export default function AdminPanelPage() {
                     </button>
                     <button
                       type="button"
+                      className="chip chipYoutube"
+                      onClick={() => setSubscription(u.uid, 'YOUTUBE')}
+                      disabled={busyUid === u.uid}
+                      title="Grant YOUTUBE"
+                    >
+                      <span className="chipText">YOUTUBE</span>
+                    </button>
+                    <button
+                      type="button"
                       className="chip"
                       onClick={() => clearSubscription(u.uid)}
                       disabled={busyUid === u.uid}
@@ -387,6 +396,7 @@ export default function AdminPanelPage() {
                         fontWeight: 'bold', 
                         color: k.subscriptionType === 'Giveaway' ? '#E91E63' : 
                                k.subscriptionType === 'Lifetime' ? '#4CAF50' : 
+                               k.subscriptionType === 'YOUTUBE' ? '#dc2626' :
                                k.subscriptionType === 'Plus' ? '#2196F3' : '#FF9800' 
                       }}>
                         {k.subscriptionType}

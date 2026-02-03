@@ -16,6 +16,13 @@ export default function UserPanelPage() {
   const [ramGb, setRamGb] = useState('4')
   const [downloadError, setDownloadError] = useState(null)
   const [downloading, setDownloading] = useState(false)
+  const [soundMuted, setSoundMuted] = useState(() => {
+    try {
+      return localStorage.getItem('soundMuted') === 'true'
+    } catch {
+      return false
+    }
+  })
 
   const isOwn = String(user?.uid) === String(uid)
 
@@ -85,7 +92,22 @@ export default function UserPanelPage() {
               {isOwn ? null : <span className="mini"> · view only</span>}
             </div>
           </div>
-          {user?.avatarUrl ? <img className="avatar" src={user.avatarUrl} alt="avatar" /> : <div className="avatar avatarEmpty" />}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              type="button"
+              className="soundToggleBtn"
+              onClick={() => {
+                if (window.NelonDLC_SFX?.toggleMute) {
+                  window.NelonDLC_SFX.toggleMute()
+                  setSoundMuted(prev => !prev)
+                }
+              }}
+              title={soundMuted ? 'Включить звук' : 'Выключить звук'}
+            >
+              {soundMuted ? '🔇' : '🔊'}
+            </button>
+            {user?.avatarUrl ? <img className="avatar" src={user.avatarUrl} alt="avatar" /> : <div className="avatar avatarEmpty" />}
+          </div>
         </div>
 
         {error ? <div className="formError">{String(error)}</div> : null}
@@ -210,6 +232,18 @@ export default function UserPanelPage() {
                   <label className="field">
                     <span className="label">Username</span>
                     <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} />
+                  </label>
+                  <label className="field">
+                    <span className="label">Rank</span>
+                    <div className="rankDisplay">
+                      {user?.isAdmin ? (
+                        <span className="adminBadge">ADMIN</span>
+                      ) : user?.subscriptionTier === 'YOUTUBE' ? (
+                        <span className="youtubeBadge">YOUTUBE</span>
+                      ) : (
+                        user?.subscriptionTier || 'None'
+                      )}
+                    </div>
                   </label>
                   <label className="field">
                     <span className="label">New password</span>

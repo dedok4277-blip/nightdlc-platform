@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 function clamp(v, a, b) {
   return Math.max(a, Math.min(b, v))
@@ -19,9 +19,19 @@ export default function SoundManager() {
   const masterRef = useRef(null)
   const fxRef = useRef(null)
   const noiseRef = useRef(null)
+  const bgGainRef = useRef(null)
+  const hissGainRef = useRef(null)
   const startedRef = useRef(false)
   const lastHoverRef = useRef(0)
   const lastScrollRef = useRef(0)
+  
+  const [isMuted, setIsMuted] = useState(() => {
+    try {
+      return localStorage.getItem('soundMuted') === 'true'
+    } catch {
+      return false
+    }
+  })
 
   function ensure() {
     if (startedRef.current) return true
@@ -81,6 +91,7 @@ export default function SoundManager() {
       const bgGain = ctx.createGain()
       bgGain.gain.value = 0.0
       bgGain.connect(fxIn)
+      bgGainRef.current = bgGain
 
       const bg1 = ctx.createOscillator()
       bg1.type = 'sine'
@@ -103,6 +114,7 @@ export default function SoundManager() {
       hiss.loop = true
       const hissGain = ctx.createGain()
       hissGain.gain.value = 0.0
+      hissGainRef.current = hissGain
       const hissLP = ctx.createBiquadFilter()
       hissLP.type = 'lowpass'
       hissLP.frequency.value = 1800
@@ -113,10 +125,17 @@ export default function SoundManager() {
       hiss.start()
 
       const t = ctx.currentTime
+      const initialMuted = localStorage.getItem('soundMuted') === 'true'
+      
       bgGain.gain.setValueAtTime(0.0, t)
-      bgGain.gain.linearRampToValueAtTime(0.012, t + 0.8)
+      if (!initialMuted) {
+        bgGain.gain.linearRampToValueAtTime(0.012, t + 0.8)
+      }
+      
       hissGain.gain.setValueAtTime(0.0, t)
-      hissGain.gain.linearRampToValueAtTime(0.020, t + 1.1)
+      if (!initialMuted) {
+        hissGain.gain.linearRampToValueAtTime(0.020, t + 1.1)
+      }
 
       startedRef.current = true
       return true
@@ -126,6 +145,7 @@ export default function SoundManager() {
   }
 
   function ping({ f = 520, type = 'sine', g = 0.06, ms = 60, to = null, pan = 0 }) {
+    if (isMuted) return
     const ctx = ctxRef.current
     const fx = fxRef.current
     if (!ctx || !fx) return
@@ -161,6 +181,7 @@ export default function SoundManager() {
   }
 
   function noiseTick({ g = 0.03, ms = 36, pan = 0 }) {
+    if (isMuted) return
     const ctx = ctxRef.current
     const fx = fxRef.current
     const buf = noiseRef.current
@@ -216,6 +237,34 @@ export default function SoundManager() {
   }
 
   useEffect(() => {
+    const ctx = ctxRef.current
+    const bgGain = bgGainRef.current
+    const hissGain = hissGainRef.current
+    
+    if (!ctx || !bgGain || !hissGain) return
+
+    const now = ctx.currentTime
+    
+    if (isMuted) {
+      bgGain.gain.cancelScheduledValues(now)
+      bgGain.gain.setValueAtTime(bgGain.gain.value, now)
+      bgGain.gain.linearRampToValueAtTime(0.0, now + 0.3)
+      
+      hissGain.gain.cancelScheduledValues(now)
+      hissGain.gain.setValueAtTime(hissGain.gain.value, now)
+      hissGain.gain.linearRampToValueAtTime(0.0, now + 0.3)
+    } else {
+      bgGain.gain.cancelScheduledValues(now)
+      bgGain.gain.setValueAtTime(bgGain.gain.value, now)
+      bgGain.gain.linearRampToValueAtTime(0.012, now + 0.5)
+      
+      hissGain.gain.cancelScheduledValues(now)
+      hissGain.gain.setValueAtTime(hissGain.gain.value, now)
+      hissGain.gain.linearRampToValueAtTime(0.020, now + 0.6)
+    }
+  }, [isMuted])
+
+  useEffect(() => {
     function boot() {
       ensure()
     }
@@ -256,7 +305,19 @@ export default function SoundManager() {
     document.addEventListener('click', onClick, true)
     document.addEventListener('mouseover', onHover, true)
 
-    window.NelonDLC_SFX = { click, hover, scroll, success, ensure: boot }
+    function toggleMute() {
+      setIsMuted(prev => {
+        const newVal = !prev
+        try {
+          localStorage.setItem('soundMuted', String(newVal))
+        } catch {
+          // ignore
+        }
+        return newVal
+      })
+    }
+
+    window.NelonDLC_SFX = { click, hover, scroll, success, ensure: boot, toggleMute, isMuted: () => isMuted }
 
     return () => {
       window.removeEventListener('pointerdown', boot)
