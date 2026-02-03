@@ -334,6 +334,15 @@ export default function AdminPanelPage() {
                 <div className="keyTypeOptions">
                   <button
                     type="button"
+                    className={`keyTypeOption ${keyType === 'Giveaway' ? 'keyTypeOptionActive' : ''}`}
+                    onClick={() => setKeyType('Giveaway')}
+                  >
+                    <div className="keyTypeIcon">🎁</div>
+                    <div className="keyTypeName">Giveaway</div>
+                    <div className="keyTypeDuration">3 дня</div>
+                  </button>
+                  <button
+                    type="button"
                     className={`keyTypeOption ${keyType === 'Basic' ? 'keyTypeOptionActive' : ''}`}
                     onClick={() => setKeyType('Basic')}
                   >
@@ -374,7 +383,12 @@ export default function AdminPanelPage() {
                       {k.key}
                     </div>
                     <div className="rowSub">
-                      {k.subscriptionType && <span style={{ fontWeight: 'bold', color: k.subscriptionType === 'Lifetime' ? '#4CAF50' : k.subscriptionType === 'Plus' ? '#2196F3' : '#FF9800' }}>
+                      {k.subscriptionType && <span style={{ 
+                        fontWeight: 'bold', 
+                        color: k.subscriptionType === 'Giveaway' ? '#E91E63' : 
+                               k.subscriptionType === 'Lifetime' ? '#4CAF50' : 
+                               k.subscriptionType === 'Plus' ? '#2196F3' : '#FF9800' 
+                      }}>
                         {k.subscriptionType}
                       </span>}
                       {k.subscriptionType && ' · '}

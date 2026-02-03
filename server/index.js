@@ -295,7 +295,9 @@ app.post('/api/me/activate-key', requireAuth, async (req, res) => {
     
     // Определяем срок действия подписки
     let expiresAt = 0
-    if (subscriptionType === 'Basic') {
+    if (subscriptionType === 'Giveaway') {
+      expiresAt = Date.now() + 3 * 24 * 60 * 60 * 1000 // 3 дня
+    } else if (subscriptionType === 'Basic') {
       expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000 // 30 дней
     } else if (subscriptionType === 'Plus') {
       expiresAt = Date.now() + 90 * 24 * 60 * 60 * 1000 // 90 дней
@@ -636,7 +638,7 @@ app.post('/api/admin/generate-key', requireAuth, requireAdmin, async (req, res) 
     const { subscriptionType } = req.body || {}
     
     // Проверяем тип подписки
-    const validTypes = ['Basic', 'Plus', 'Lifetime']
+    const validTypes = ['Giveaway', 'Basic', 'Plus', 'Lifetime']
     const type = validTypes.includes(subscriptionType) ? subscriptionType : 'Basic'
     
     // Генерируем ключ в формате XXXX-XXXX-XXXX
