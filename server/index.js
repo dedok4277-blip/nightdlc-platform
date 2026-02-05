@@ -698,6 +698,53 @@ app.delete('/api/admin/keys/:id', requireAuth, requireAdmin, async (req, res) =>
   }
 })
 
+
+// Публичный API для получения данных пользователя (для клиента)
+app.get('/api/user/:uid', async (req, res) => {
+  try {
+    const uid = String(req.params.uid || '').trim()
+    if (!uid) {
+      return res.status(400).json({ error: 'bad_request' })
+    }
+
+    const [users] = await pool.execute(
+      'SELECT uid, username, avatar_url, is_admin FROM users WHERE uid = ?',
+      [uid]
+    )
+
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found' })
+    }
+
+    const user = users[0]
+    
+    // Формируем полный URL для аватарки
+    let avatarUrl = null
+    if (user.avatar_url) {
+      // Если это относительный путь, добавляем домен
+      if (user.avatar_url.startsWith('/')) {
+        avatarUrl = `https://nelondlc.onrender.com${user.avatar_url}`
+      } else if (user.avatar_url.startsWith('http://') || user.avatar_url.startsWith('https://')) {
+        // Если уже полный URL, используем как есть
+        avatarUrl = user.avatar_url
+      } else {
+        // Если путь без слеша, добавляем его
+        avatarUrl = `https://nelondlc.onrender.com/${user.avatar_url}`
+      }
+    }
+    
+    return res.json({
+      username: user.username,
+      uid: user.uid,
+      isAdmin: !!user.is_admin,
+      avatarUrl: avatarUrl
+    })
+  } catch (error) {
+    console.error('Get user error:', error)
+    return res.status(500).json({ error: 'internal_error' })
+  }
+})
+
 // Для всех остальных маршрутов отдаем index.html (для React Router)
 app.use((req, res, next) => {
   // Пропускаем API запросы
