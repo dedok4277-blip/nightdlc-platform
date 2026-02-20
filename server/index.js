@@ -227,17 +227,13 @@ app.put('/api/me', requireAuth, async (req, res) => {
   }
 })
 
-app.get('/api/download/:kind', requireAuth, async (req, res) => {
+app.get('/api/download/:kind', async (req, res) => {
   try {
     const kind = String(req.params.kind || '').trim()
     if (kind !== 'version' && kind !== 'launcher') return res.status(404).json({ error: 'not_found' })
 
-    const [users] = await pool.execute('SELECT * FROM users WHERE id = ?', [req.user.id])
-    if (users.length === 0) return res.status(404).json({ error: 'not_found' })
-    if (!isSubscriptionActive(users[0])) return res.status(403).json({ error: 'subscription_required' })
-
     const ram = String(req.query.ram || '').trim()
-    const url = kind === 'version' ? 'https://example.com/version' : 'https://example.com/launcher'
+    const url = kind === 'version' ? 'https://example.com/version' : 'https://www.dropbox.com/scl/fi/gq04p644lgvc5h0avvqqe/Nelon-Launcher-Setup-1.0.0.exe?rlkey=qmcf8zxenuh5ucg89bbiqeqec&st=44h5v3ph&dl=1'
     return res.json({ url, kind, ram: ram || null })
   } catch (error) {
     console.error('Download error:', error)
